@@ -324,6 +324,7 @@ try {
   const liveCtx = await browser.newContext({
     viewport: { width: 390, height: 844 },
     reducedMotion: "reduce",
+    hasTouch: true,
   });
   await mockFeed(liveCtx, control);
   const live = await liveCtx.newPage();
@@ -338,14 +339,44 @@ try {
   await audit(live, "live-board");
   await live.setViewportSize({ width: 1440, height: 1000 });
   await live.screenshot({ path: `${scratch}/live-mocked-1440.png` });
+  await live.setViewportSize({ width: 390, height: 844 });
+  assert.ok(await live.locator(".intro-row").isVisible());
   await live.getByRole("button", { name: "Nap Zero work" }).click();
   await live
     .getByRole("button", { name: "Lock my prediction", exact: true })
     .click();
+  const shareBox = await live.locator(".share-button").boundingBox();
+  const toastBox = await live.locator(".toast").boundingBox();
+  assert.ok(shareBox && toastBox);
+  assert.equal(await live.evaluate(() => scrollY), 0);
+  assert.ok(shareBox.y + shareBox.height <= 844);
+  assert.ok(toastBox.y >= shareBox.y + shareBox.height);
+  assert.equal(
+    await live
+      .locator(".toast-region")
+      .evaluate((el) => getComputedStyle(el).position),
+    "static",
+  );
+  await live.screenshot({ path: `${scratch}/first-call-390.png` });
+  // Raw touchscreen coordinates must work without locator auto-scrolling or dismissal.
+  await live.touchscreen.tap(
+    shareBox.x + shareBox.width / 2,
+    shareBox.y + shareBox.height / 2,
+  );
+  await live.locator(".share-field input").waitFor();
+  assert.ok(await live.getByText("First Call", { exact: true }).isVisible());
+  const professorWithNotice = await live
+    .locator(".professor-strip")
+    .evaluate((el) => el.getBoundingClientRect().y + scrollY);
   await live.getByRole("button", { name: "Dismiss achievement" }).click();
-  await live
-    .getByRole("button", { name: "Duel a friend", exact: true })
-    .click();
+  const professorWithoutNotice = await live
+    .locator(".professor-strip")
+    .evaluate((el) => el.getBoundingClientRect().y + scrollY);
+  assert.ok(professorWithNotice - professorWithoutNotice >= toastBox.height);
+  report(
+    "phone achievement leaves duel control usable",
+    "390×844: First Call stays in flow below the controls; the visible Duel a friend centre accepts a raw touchscreen tap while the notice is open; dismissal closes its space above the Professor.",
+  );
   const link = await live.locator(".share-field input").inputValue();
   assert.ok(link.includes("#duel="));
   const friendCtx = await browser.newContext({
@@ -360,6 +391,42 @@ try {
   await friend
     .getByRole("button", { name: "Lock my prediction", exact: true })
     .waitFor();
+  await friend.evaluate(() => document.fonts.ready);
+  const friendLock = await friend.locator(".primary-button").boundingBox();
+  const friendDeadline = await friend.locator(".lock-hint").boundingBox();
+  assert.ok(friendLock && friendDeadline);
+  assert.equal(await friend.evaluate(() => scrollY), 0);
+  assert.ok(friendLock.y >= 0 && friendLock.y + friendLock.height <= 844);
+  assert.ok(friendDeadline.y + friendDeadline.height <= 844);
+  assert.ok(await friend.locator(".primary-button").isEnabled());
+  assert.equal(
+    await friend.locator(".intro-row").evaluate((el) => el.getBoundingClientRect().height),
+    1,
+  );
+  assert.match(
+    await friend.locator(".duel-notice").innerText(),
+    /Round #101 · Friend called Nap/,
+  );
+  assert.match(
+    await friend.locator(".duel-notice").innerText(),
+    /editable in the link.*local.*do not sync/s,
+  );
+  await friend.screenshot({ path: `${scratch}/friend-entry-390.png` });
+  await audit(friend, "friend-entry");
+  await friend.setViewportSize({ width: 1440, height: 1000 });
+  assert.ok(await friend.locator(".intro-row").isVisible());
+  await friend.setViewportSize({ width: 390, height: 844 });
+  await friend.getByRole("button", { name: "Practice", exact: true }).click();
+  assert.ok(await friend.locator(".intro-row").isVisible());
+  await friend.getByRole("button", { name: "Live", exact: true }).click();
+  assert.equal(
+    await friend.locator(".intro-row").evaluate((el) => el.getBoundingClientRect().height),
+    1,
+  );
+  report(
+    "phone friend entry keeps lock above the fold",
+    "390×844: the invitation, round, friend call, editable/local disclosure, enabled lock and deadline fit without scrolling; the ordinary and desktop introductions remain visible.",
+  );
   await friend.getByRole("button", { name: "Sprint Some work" }).click();
   await friend.getByRole("button", { name: "1–10", exact: true }).click();
   await friend

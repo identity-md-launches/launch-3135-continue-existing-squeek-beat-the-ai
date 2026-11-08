@@ -1776,6 +1776,17 @@ dialog::backdrop {
   .intro-row {
     padding-block: 24px 19px;
   }
+  .intro-row.duel-entry-intro {
+    /* Keep the page heading available to assistive technology without hero space. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
   .intro-row h1 {
     font-size: var(--heading);
     line-height: 1.15;
@@ -2278,9 +2289,11 @@ dialog::backdrop {
     font-size: var(--subhead);
   }
   .toast-region {
-    bottom: 12px;
-    left: 12px;
-    max-width: calc(100% - 24px);
+    position: static;
+    max-width: none;
+  }
+  .toast-region:not(:empty) {
+    margin-top: 12px;
   }
   .toast {
     padding: 12px;

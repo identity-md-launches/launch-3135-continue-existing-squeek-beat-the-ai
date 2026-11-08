@@ -447,6 +447,27 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }
 
+  const achievementNotice = (
+    <div className="toast-region" role="status">
+      {toast[0] && (
+        <div className="toast">
+          <Trophy size={22} />
+          <div>
+            <span>Achievement unlocked</span>
+            <strong>{toast[0]}</strong>
+          </div>
+          <button
+            className="icon-button"
+            aria-label="Dismiss achievement"
+            onClick={() => setToast((t) => t.slice(1))}
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <>
       <a className="skip-link" href="#main">
@@ -479,7 +500,9 @@ export default function App() {
         </div>
       </header>
       <main id="main" className="wrap" tabIndex={-1}>
-        <div className="intro-row">
+        <div
+          className={`intro-row${showDuel && view === "play" ? " duel-entry-intro" : ""}`}
+        >
           <div>
             <h1>
               Small hamster.
@@ -593,6 +616,7 @@ export default function App() {
             </button>
           </div>
         )}
+        {view !== "play" && achievementNotice}
 
         {view === "play" && (
           <>
@@ -862,6 +886,7 @@ export default function App() {
                         </small>
                       </label>
                     )}
+                    {achievementNotice}
                   </div>
                 </div>
                 <div className="professor-strip">
@@ -1293,24 +1318,6 @@ export default function App() {
           Points only. No money, prizes, airdrops or Genesis approval.
         </p>
       </footer>
-      <div className="toast-region" role="status">
-        {toast[0] && (
-          <div className="toast">
-            <Trophy size={22} />
-            <div>
-              <span>Achievement unlocked</span>
-              <strong>{toast[0]}</strong>
-            </div>
-            <button
-              className="icon-button"
-              aria-label="Dismiss achievement"
-              onClick={() => setToast((t) => t.slice(1))}
-            >
-              <X size={18} />
-            </button>
-          </div>
-        )}
-      </div>
       <dialog
         ref={dialog}
         className="result-dialog"

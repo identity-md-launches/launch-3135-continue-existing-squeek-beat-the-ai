@@ -1,5 +1,70 @@
 # Validation record
 
+## Phone entry and achievement revision (2026-11-08)
+
+This revision addresses only findings `d6e8b9dfbe47b8bdbcb2c9c720942838eaed40b2ff72190c90145e6d5c0dacdf` and `bad89573dc88dfab47ecbbcf20313577a6778705901265646ceec2fcea5e6981`. Both reproduced before source edits. The existing game, feed rules, scoring, save format, assets, dependencies and site/domain metadata are preserved. Answers are in `.imd-responses.json`.
+
+### Reproduction, fixes and rechecks
+
+The supplied Chromium browser rendered production assets with `test/browser.mjs`'s schema-valid `mockedData` fixtures: installation `sepolia-browser-test-only`, time `2026-11-08T12:05:00Z`, open round 101 closing at 12:10. Each initial entry used fresh local storage, a loaded Outfit font, a 390 × 844 viewport and `scrollY=0`.
+
+| Finding | Before: reproduced | Source fix and final measurement |
+| --- | --- | --- |
+| High: invitation hides the main action | Invitation x=16, y=254.671875, w=358, h=121. Enabled lock y=853.25–899.25, outside the screen | `src/App.tsx:504`, `src/style.css:1779`: only phone Live Play with an undismissed invitation visually omits the intro and its space. The heading remains accessible through a clipped 1px element. Final invitation y=126–247; enabled lock y=724.578125–770.578125; deadline ends at y=795.578125. The complete round, friend call and editable-link/local-only disclosure remain. Ordinary entry still has its headline and lock y=712.25–758.25. Practice, other views, desktop and dismissal restore the normal intro |
+| Medium: First Call blocks Duel a friend | Share y=772.25–814.25. Toast x=12, y=772, w=232, h=60. `elementFromPoint(195,793.25)` returned `.toast`; activating that hit target did not open the link | `src/App.tsx:450`, `src/App.tsx:889`, `src/style.css:2291`: the existing status notice follows the controls; at ≤560px it is static with 12px spacing when populated. Final share position is unchanged; toast x=33, y=852.25, w=324, h=60. The share centre hits the button. A supplied-browser click opens its selectable link with First Call still present and no scroll. Dismissal closes 72px of document space above the Professor. `src/App.tsx:619` retains the notice above content in other views. At 561px and larger the existing fixed toast remains |
+
+A first implementation used `display:none` for the intro. Axe then reported `page-has-heading-one`; preserving the semantic heading with the visually hidden pattern fixed that finding without restoring hero space. The final friend entry passes all 44 applicable axe checks.
+
+`test/browser.mjs:348` adds share/notice geometry and raw touchscreen assertions before dismissal. Its friend-entry checks also cover the visible lock/deadline, complete disclosure and responsive intro. The new assertions are delivered for a normal Playwright runtime; the shell suite could not reach them here, as explained below.
+
+### Commands and actual outcomes
+
+Dependencies were installed only in disposable `test/scratch/check/`, from byte-identical copies of the existing manifest and lockfile. Source, public assets and configuration were mirrored there for checks; final source/configuration were compared byte for byte against that successful build copy. No root dependency directory, dependency archive or manifest change is delivered.
+
+| Command or check | Actual result |
+| --- | --- |
+| `npm ci --prefix test/scratch/check --cache test/scratch/npm-cache --no-audit --no-fund` | Passed; installed 83 packages from the existing lockfile |
+| `npm run typecheck --prefix test/scratch/check` | Passed, no diagnostics on final source |
+| `npm test --prefix test/scratch/check` | **61 passed, 0 failed** |
+| `npm run build --prefix test/scratch/check` | Passed after the final source change; Vite 6.4.1, 1778 modules. Its complete export was copied to root `dist/`: `index-CHmCh6ug.js`, `index-h4Xec68w.css`, unchanged `api-schemas-BuEuZ2Un.js` and local runtime assets |
+| `node --check test/browser.mjs` | Passed |
+| `npm run test:browser --prefix test/scratch/check`, with the supplied Playwright module/browser paths | **Could not run interactions**: Chromium exited with SIGTRAP during launch; command exited 1. This is a runtime limitation, not a passing suite |
+| `node .imd/reads/skills/design-critic/scripts/taste.mjs --out test/scratch/taste`, with the supplied Playwright module/browser paths | Attempted; reported a failed `render` check because Chromium could not launch. **No 16/16 probe result is claimed for this revision** |
+
+### Supplied-browser coverage and transport limitation
+
+The supplied browser works, but could not reach the shell's local HTTP preview. For rendered validation, a disposable HTTPS document loaded the final `dist/` JavaScript, CSS, font, favicon and schema chunk in memory. Only asset transport URLs were embedded; fixture fetch responses and the clock were isolated test overrides. This exercised the exported application and reproduced both reports' exact original rectangles. It does **not** establish local HTTP/subpath delivery, live hosting headers, independent fresh browser contexts or raw touchscreen input. Initial sender and recipient entries instead used separate document loads with cleared local storage. The normal HTTP/Playwright regressions remain in `test/browser.mjs`.
+
+Actual supplied-browser interaction checks:
+
+- The 390px friend entry retained its complete invitation and deadline above the fold. Space/Tab/Enter selected Sprint, bracket 1–10 and locked the call; the lock's 3px focus ring was visually inspected. Saved data retained the friend's Nap and stayed pending before settlement. Reloading with the confirmed settlement fixture at 12:11 resolved **30 player points vs 0 friend points** and unlocked Duelist. The result dialog closed with Escape.
+- With First Call open, the ordinary phone share button remained unobscured and opened the selectable link without scrolling. Dismissal removed the notice and its space. Awards retained a single dismissible notice above content. Switching Practice/Live and dismissing the invitation restored the appropriate intro. The three fixed practice rounds completed for **90 practice points**, three practice results and Hat Trick, leaving the **30 live points** separate.
+- Ordinary and friend entry were measured at **320/390/1440px** using the pinned probe's unmodified DOM `collect()` function through the supplied browser. Both samples had no horizontal overflow, text overlaps, floating-control obstruction, clipped text or crowded targets below the 24px/spacing bar. Measured text met 4.5:1 (3:1 large). Eight text boxes per paired phone/desktop sample had an unmeasurable background; they are not counted as contrast passes. The interface retained Outfit, three weights and at most six repeated sizes. Phone prose counts were 22 words for ordinary entry and 36 for friend entry. This supplementary DOM measurement is not a successful run of the full probe command.
+- Widths **560/561/850px** confirmed the exact phone breakpoint and no horizontal overflow. At 560px the notice was static and the friend intro occupied 1px outside flow; at 561px and above the intro and fixed toast returned. Reduced-motion emulation on the actual app left **zero running infinite animations**; Pause changed to Resume. Tested application states recorded no uncaught JavaScript errors.
+
+Axe results on the final export: **44 checks / zero violations** for phone friend entry; **44 / zero** for the confirmed friend board with its Duelist notice; **19 / zero** for the friend result dialog. These scans and keyboard checks are not a human screen-reader session or a claim of full accessibility compliance.
+
+Screenshots were made and inspected for both original defects and final 390px entry/notice states, desktop, keyboard focus and result. Disposable evidence paths include `test/scratch/browser/before-friend-entry-390.png`, `before-first-call-390.png`, `after-friend-entry-390.png`, `after-first-call-390.png`, `normal-final-{320,390,1440}.png`, `friend-final-{320,390,1440}.png`, `friend-result-final-390.png` and `practice-final-390.png`. Scratch screenshots, test dependencies and browser-generated logs are not delivery assets.
+
+### Better Interface consolidated review
+
+| Domain | Coverage, finding and resolution |
+| --- | --- |
+| Accessibility — Checked | Existing native controls, names, status region and dismiss control retained. Keyboard locking, visible focus, Escape, reduced motion and scoped axe scans checked. Fixed the missing semantic heading introduced by hiding the hero. Human screen readers, forced colors and native zoom remain unverified |
+| Layout — Checked | Reproduced and fixed both root causes above. Final 390px screenshots inspected; DOM measurements at 320/390/1440 and breakpoint checks at 560/561/850. Professor movement measured in document coordinates, accounting for scroll. RTL and browser-native 200% zoom unverified |
+| Writing — Checked | Existing action labels, friend call/round, deadline and editable/local-only disclosure remain intact. No new promotional copy or timing/result claims; pending and confirmed states exercised |
+| Typography — Checked | Existing local Outfit file, six-role scale and weights retained. Font loaded in the browser; ordinary/friend text wrapped without clipping in measured widths. No new size or weight added |
+| Colors — Checked | Existing semantic hex tokens preserved. Rendered solid-background pairs passed the pinned collector thresholds and scoped axe audits. Image/canvas/background pairs excluded by the collector remain unverified; no new theme was added |
+| UI — Checked | Live entry, selected, locked, share, notice, dismiss, result, Practice and Awards fallback states exercised. Existing notice surface, icons, queue, manual dismiss and desktop position preserved. Motion source guards and reduced-motion/Pause behavior checked; animation-panel replay at 10% speed not performed |
+
+Complete for the two reported defects and the available rendered checks. The standalone browser suite/probe, HTTP/subpath browser preview, WebKit/native Safari, human screen readers, RTL and native 200% zoom remain unverified in this run. Earlier broader/live-feed validation below is historical and was not re-established by this revision. IMD publishes the delivered `dist/` to the existing site/domain after review; this worker performed no publishing action.
+
+Separate hosting observation: direct inspection of the existing live domain reported an Ajv `new Function` CSP error. A `curl -I` check confirmed its response sets `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'`, without allowing that compilation. This is the current hosting response policy, absent from the repository, and needs IMD/the hosting owner to settle or recheck at handoff. The two requested phone fixes do not change the accepted schema-validation implementation. The isolated browser checks above do not establish that the live domain is usable under that policy.
+
+Final integrity audit: the export contains **9 files / 659,146 bytes**. The **47 eligible project files total less than 1.5 MiB**, below the 8 MiB budget. HTML/CSS/module local references resolve and use relative asset URLs; title, favicon, description, `og:title` and `og:image` remain present for the existing domain. Final source and build-copy configuration match byte for byte. The manifest, lockfile and 55-byte ignore file are unchanged; `dist/` is included. No source map, package archive, symlink, dependency/cache directory or browser-generated log is in the submission set. `.imd-responses.json` was parsed and checked against both exact finding IDs.
+
+---
+
 ## Update build: continuation of job 3f8539ac-d327-494f-9f07-acf232e54e08 (2026-11-08)
 
 The tree from https://github.com/identity-md-launches/launch-3134-build-publish-squeek-beat-the-ai, as served at https://squeek-beat-the-ai-predictor.imd.site/, was restored unchanged. Every check was re-run on it before any edit (typecheck clean, 61/61 unit tests, all Chromium flows, probe 16/16). After that, a Better Interface review led to the fixes below, and the export was rebuilt after the last source change. These are checks the worker ran, not an independent certification.

@@ -66,7 +66,7 @@ Weekly scores use Monday 00:00 UTC through the following Monday, attributed by s
 | Collector | Collect ten distinct settlement artworks |
 | Sleep Whisperer | Correctly predict five naps |
 
-Unlocks announce in a dismissible toast. Practice unlocks are labelled and stored separately. These are game achievements only; they confer no Genesis badge, whitelist, airdrop or reward.
+Unlocks announce in a dismissible notice. On phones it follows the call controls in normal document flow; larger screens retain the floating toast. Practice unlocks are labelled and stored separately. These are game achievements only; they confer no Genesis badge, whitelist, airdrop or reward.
 
 ## Friend duels and local art
 
@@ -127,7 +127,17 @@ IMD_PLAYWRIGHT=/opt/imd-tools/playwright-mcp/node_modules/playwright/index.mjs P
 
 Outside IMD, set `IMD_PLAYWRIGHT` to your own Playwright `index.mjs` and `PLAYWRIGHT_BROWSERS_PATH` to your installed browser directory. The suite serves the built export, blocks real feed access with explicit test fixtures, and uses a virtual clock; it does not wait ten real minutes. It writes only under `test/scratch/`, which is not a build input or submitted deliverable.
 
-## Changes in this update (2026-11-08)
+## Phone layout revision (2026-11-08)
+
+Both reviewer reports reproduced before editing. Phone friend invitations now replace the introductory hero's visual space, keeping the complete invitation, enabled prediction action and deadline on the opening 390 × 844 screen. The heading stays available to assistive technology; ordinary entry and desktop keep the existing introduction. Phone achievement notices now sit after the call controls and move later content down, leaving **Duel a friend** usable while **First Call** remains open.
+
+The final production build, TypeScript check and all **61 unit tests** passed. Supplied-browser checks confirmed both fixes, keyboard locking, friend settlement resolution, the three-round practice game, notice dismissal and responsive layouts. Axe reported zero violations in the tested friend board and result states. `test/browser.mjs` now also includes first-screen and raw touchscreen regression assertions.
+
+The shell browser suite and pinned taste command were attempted but could not launch Chromium (SIGTRAP), so they are **not reported as passing in this revision**. Browser validation instead loaded the built export's code, CSS, font and schema chunk into a disposable page with the existing fixtures and fixed clock. It reproduced the exact reported rectangles before the fixes. This transport does not verify HTTP delivery, live hosting headers or Safari. See [VALIDATION.md](VALIDATION.md) for the measurements, six-domain coverage and remaining limitations. Earlier continuation/build checks below are preserved as historical records.
+
+Direct inspection also found that the current live host's CSP blocks Ajv's runtime compilation. IMD/the hosting owner needs to settle or recheck that response policy at handoff; this phone-layout revision preserves the accepted schema-validation implementation.
+
+## Changes in the earlier continuation update (2026-11-08)
 
 This build continues completed IMD job `3f8539ac-d327-494f-9f07-acf232e54e08` and replaces the export at https://squeek-beat-the-ai-predictor.imd.site/. The game rules, scoring, feed handling and saved data format (`squeek.predictor.v1`) are unchanged, so existing local progress carries over.
 
